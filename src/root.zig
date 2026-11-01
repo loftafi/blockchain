@@ -62,7 +62,7 @@ pub const Blockchain = struct {
 
     /// Load a new `Blockchain` object using the
     /// contents of a blockchain file.
-    pub fn load(allocator: std.mem.Allocator, io: std.Io, file: *std.Io.File) (std.Io.File.ReadStreamingError || std.Io.Reader.Error || Allocator.Error || Error)!Blockchain {
+    pub fn load(allocator: std.mem.Allocator, io: std.Io, file: *const std.Io.File) (std.Io.File.ReadStreamingError || std.Io.Reader.Error || Allocator.Error || Error)!Blockchain {
         var blocks: std.ArrayList(Block) = .empty;
         errdefer blocks.deinit(allocator);
 
@@ -90,6 +90,7 @@ pub const Blockchain = struct {
                 .hash = hash,
             });
         }
+        std.log.debug("loaded {d} blocks.", .{blocks.items.len});
 
         return .{
             .blocks = blocks,
@@ -103,7 +104,7 @@ pub const Blockchain = struct {
     pub fn save(
         self: *Blockchain,
         io: std.Io,
-        file: *std.Io.File,
+        file: *const std.Io.File,
     ) (std.Io.Writer.Error || Allocator.Error)!void {
         var buffer: [5000]u8 = undefined;
         var out = file.writerStreaming(io, &buffer);
@@ -117,6 +118,7 @@ pub const Blockchain = struct {
         }
         try out.interface.writeInt(usize, 0, .big);
         try out.interface.flush();
+        std.log.debug("wrote {d} blocks.", .{self.blocks.items.len});
     }
 
     /// Verify the hash of each block to confirm no blocks
@@ -209,3 +211,6 @@ const Allocator = std.mem.Allocator;
 
 const expectEqual = std.testing.expectEqual;
 const expectEqualStrings = std.testing.expectEqualStrings;
+
+// SPDX-FileCopyrightText: 2026 Jay Rhoden.
+// SPDX-License-Identifier: MIT
