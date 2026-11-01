@@ -1,0 +1,12 @@
+.{
+    .name = .blockchain,
+    .version = "0.0.0",
+    .fingerprint = 0x2a493aaa52d80b45,
+    .minimum_zig_version = "0.17.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
