@@ -16,6 +16,19 @@ pub const Blockchain = struct {
         self.* = undefined;
     }
 
+    pub fn append(
+        self: *Blockchain,
+        allocator: Allocator,
+        io: std.Io,
+        data: []const u8,
+    ) Allocator.Error!void {
+        if (self.blocks.lastPtr()) |block| {
+            try self.blocks.append(allocator, try .init(allocator, io, data, &block.hash));
+        } else {
+            try self.blocks.append(allocator, try .init(allocator, io, data, null));
+        }
+    }
+
     /// A block contains both an aribrary `data` byte sequence,
     /// and the `previous_hash` of the previous block.
     pub const Block = struct {
@@ -136,19 +149,6 @@ pub const Blockchain = struct {
             previous = block;
         }
         return true;
-    }
-
-    pub fn append(
-        self: *Blockchain,
-        allocator: Allocator,
-        io: std.Io,
-        data: []const u8,
-    ) Allocator.Error!void {
-        if (self.blocks.lastPtr()) |block| {
-            try self.blocks.append(allocator, try .init(allocator, io, data, &block.hash));
-        } else {
-            try self.blocks.append(allocator, try .init(allocator, io, data, null));
-        }
     }
 };
 
