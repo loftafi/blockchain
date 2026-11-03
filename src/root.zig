@@ -50,9 +50,10 @@ pub const Blockchain = struct {
             now: i96,
             previous_hash: []const u8,
         ) [hash_length]u8 {
-            var h = std.crypto.hash.sha2.Sha256.init(.{});
+            var h = std.crypto.hash.sha3.Keccak256.init(.{});
+            //var h = std.crypto.hash.sha2.Sha256.init(.{});
             h.update(data);
-            var buffer: [12]u8 = undefined;
+            var buffer: [@bitSizeOf(i96) / @bitSizeOf(u8)]u8 = undefined;
             std.mem.writeInt(i96, &buffer, now, .little);
             h.update(&buffer);
             h.update(previous_hash);
