@@ -32,7 +32,7 @@ pub const Blockchain = struct {
     /// A block contains both an aribrary `data` byte sequence,
     /// and the `previous_hash` of the previous block.
     pub const Block = struct {
-        pub const hash_length = 32;
+        pub const hash_length = std.crypto.hash.sha3.Keccak256.digest_length;
         pub const zero: [hash_length]u8 = @splat(0);
 
         data: []const u8,
