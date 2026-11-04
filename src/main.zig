@@ -12,7 +12,7 @@ pub fn main(init: std.process.Init) !void {
     if (iter.next()) |f| {
         filename = try init.arena.allocator().dupe(u8, f);
     } else {
-        std.log.err("usage: zig build run -- filename data", .{});
+        std.log.err("usage: blockchain filename data", .{});
         return;
     }
 

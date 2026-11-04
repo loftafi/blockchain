@@ -19,8 +19,7 @@ pub fn proof_of_work(
 
     var nonce: usize = 0;
 
-    //var data = std.Io.Writer.Allocating.init(gpa);
-    next: while (nonce < std.math.maxInt(@TypeOf(nonce))) {
+    next: while (nonce < std.math.maxInt(@TypeOf(nonce))) : (nonce += 1) {
         calculateHash(
             previous_hash,
             data,
@@ -28,12 +27,9 @@ pub fn proof_of_work(
             nonce,
             &hash,
         );
-        for (hash[0..targetBytes]) |b| {
-            if (b != 0) {
-                nonce += 1;
+        for (hash[0..targetBytes]) |b|
+            if (b != 0)
                 continue :next;
-            }
-        }
         return .{ .hash = hash, .nonce = nonce };
     }
     return error.Unsolvable;
@@ -56,8 +52,6 @@ pub fn calculateHash(
     h.update(targetBitsHex);
     h.update(nonce_value);
     h.final(hash);
-
-    //std.log.info("try data={s} nonce={d} hash={x}", .{ data, nonce, hash[0..8] });
 }
 
 test proof_of_work {
