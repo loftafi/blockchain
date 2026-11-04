@@ -25,7 +25,7 @@ pub fn main(init: std.process.Init) !void {
         } else |err| {
             switch (err) {
                 error.FileNotFound => {
-                    std.log.debug("create file: {s}", .{filename.?});
+                    std.log.debug("existing file {s} not found. beginning new file.", .{filename.?});
                 },
                 else => return err,
             }
@@ -33,12 +33,17 @@ pub fn main(init: std.process.Init) !void {
 
         try b.append(init.gpa, init.io, data);
 
-        if (std.Io.Dir.cwd().openFile(init.io, filename.?, .{ .mode = .write_only })) |*file| {
+        if (std.Io.Dir.cwd().createFile(init.io, filename.?, .{})) |*file| {
             defer file.close(init.io);
             std.log.debug("update file: {s}", .{filename.?});
             try b.save(init.io, file);
             for (b.blocks.items) |block| {
-                std.log.info("{d} {s}", .{ block.when, block.data });
+                std.log.info("{d} {x} {x}... {s}", .{
+                    block.when,
+                    block.nonce,
+                    block.hash[0..8],
+                    block.data,
+                });
             }
         } else |err| {
             return err;

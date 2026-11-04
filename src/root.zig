@@ -21,7 +21,7 @@ pub const Blockchain = struct {
         allocator: Allocator,
         io: std.Io,
         data: []const u8,
-    ) Allocator.Error!void {
+    ) (error{Unsolvable} || Allocator.Error)!void {
         if (self.blocks.lastPtr()) |block| {
             try self.blocks.append(allocator, try .init(allocator, io, data, &block.hash));
         } else {
@@ -38,18 +38,21 @@ pub const Blockchain = struct {
         data: []const u8,
         when: i96,
         hash: [hash_length]u8,
+        nonce: usize,
 
         pub fn init(
             allocator: std.mem.Allocator,
             io: std.Io,
             data: []const u8,
             previous_hash: ?*const [hash_length]u8,
-        ) Allocator.Error!Block {
+        ) (error{Unsolvable} || Allocator.Error)!Block {
             const now = std.Io.Clock.now(.real, io).toNanoseconds();
+            const result = try proof_of_work(data, now, previous_hash orelse &zero);
             return .{
                 .data = try allocator.dupe(u8, data),
                 .when = now,
-                .hash = calculateHash(data, now, previous_hash orelse &zero),
+                .hash = result.hash,
+                .nonce = result.nonce,
             };
         }
 
@@ -61,16 +64,21 @@ pub const Blockchain = struct {
         fn calculateHash(
             data: []const u8,
             now: i96,
+            nonce: usize,
             previous_hash: []const u8,
         ) [hash_length]u8 {
-            var h = std.crypto.hash.sha3.Keccak256.init(.{});
-            //var h = std.crypto.hash.sha2.Sha256.init(.{});
-            h.update(data);
-            var buffer: [@bitSizeOf(i96) / @bitSizeOf(u8)]u8 = undefined;
-            std.mem.writeInt(i96, &buffer, now, .little);
-            h.update(&buffer);
-            h.update(previous_hash);
-            return h.finalResult();
+            var time_buffer: [@bitSizeOf(i96) / @bitSizeOf(u8)]u8 = undefined;
+            std.mem.writeInt(i96, &time_buffer, now, .little);
+
+            var hash: [Block.hash_length]u8 = undefined;
+            ProofOfWork.calculateHash(
+                previous_hash,
+                data,
+                &time_buffer,
+                nonce,
+                &hash,
+            );
+            return hash;
         }
     };
 
@@ -96,12 +104,14 @@ pub const Blockchain = struct {
             errdefer allocator.free(data);
             try in.interface.readSliceAll(data);
             const when = try in.interface.takeInt(i96, .big);
+            const nonce = try in.interface.takeInt(usize, .big);
             var hash: [Block.hash_length]u8 = undefined;
             try in.interface.readSliceAll(&hash);
             try blocks.append(allocator, .{
                 .data = data,
                 .when = when,
                 .hash = hash,
+                .nonce = nonce,
             });
         }
         std.log.debug("loaded {d} blocks.", .{blocks.items.len});
@@ -128,6 +138,7 @@ pub const Blockchain = struct {
             try out.interface.writeInt(usize, block.data.len, .big);
             try out.interface.writeAll(block.data);
             try out.interface.writeInt(i96, block.when, .big);
+            try out.interface.writeInt(usize, block.nonce, .big);
             try out.interface.writeAll(&block.hash);
         }
         try out.interface.writeInt(usize, 0, .big);
@@ -143,6 +154,7 @@ pub const Blockchain = struct {
             const hash = Block.calculateHash(
                 block.data,
                 block.when,
+                block.nonce,
                 if (previous) |p| &p.hash else &Block.zero,
             );
             if (!std.mem.eql(u8, &hash, &block.hash)) return false;
@@ -174,6 +186,7 @@ test "block_validate" {
     b.blocks.items[1] = .{
         .data = data,
         .hash = b.blocks.items[1].hash,
+        .nonce = b.blocks.items[1].nonce,
         .when = b.blocks.items[1].when,
     };
     try expectEqual(false, b.validate());
@@ -212,6 +225,13 @@ const Allocator = std.mem.Allocator;
 
 const expectEqual = std.testing.expectEqual;
 const expectEqualStrings = std.testing.expectEqualStrings;
+
+pub const ProofOfWork = @import("ProofOfWork.zig");
+pub const proof_of_work = ProofOfWork.proof_of_work;
+
+test {
+    _ = @import("ProofOfWork.zig");
+}
 
 // SPDX-FileCopyrightText: 2026 Jay Rhoden.
 // SPDX-License-Identifier: MIT
