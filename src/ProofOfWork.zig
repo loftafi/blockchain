@@ -1,13 +1,17 @@
+/// The number of zero bits that must appear at the beginning of a block hash
+/// for it to be accepted as proof of work. The larger the number, the slower
+/// it will be to find a valid hash.
 const targetBits = if (builtin.is_test) 8 else 24;
+
 /// Check for this many zero bytes at the start of the hash
 const targetBytes = targetBits / @bitSizeOf(u8);
-const targetBitsHex = std.fmt.comptimePrint("{x}", .{targetBits});
 
-const builtin = @import("builtin");
+/// A hexidecimal string indicating the number of zero bits required.
+const targetBitsHex = std.fmt.comptimePrint("{x}", .{targetBits});
 
 /// Given the data related to a block, find a nonce that
 /// produces a hash that beings with zeros.
-pub fn proof_of_work(
+pub fn proofOfWork(
     data: []const u8,
     when: i96,
     previous_hash: []const u8,
@@ -54,10 +58,12 @@ pub fn calculateHash(
     h.final(hash);
 }
 
-test proof_of_work {
-    const result = try proof_of_work("block data", 12345, "previous_hash");
+test proofOfWork {
+    const result = try proofOfWork("block data", 12345, "previous_hash");
     try std.testing.expectEqual(0, result.hash[0]);
 }
+
+const builtin = @import("builtin");
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

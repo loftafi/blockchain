@@ -47,7 +47,7 @@ pub const Blockchain = struct {
             previous_hash: ?*const [hash_length]u8,
         ) (error{Unsolvable} || Allocator.Error)!Block {
             const now = std.Io.Clock.now(.real, io).toNanoseconds();
-            const result = try proof_of_work(data, now, previous_hash orelse &zero);
+            const result = try proofOfWork(data, now, previous_hash orelse &zero);
             return .{
                 .data = try allocator.dupe(u8, data),
                 .when = now,
@@ -227,7 +227,7 @@ const expectEqual = std.testing.expectEqual;
 const expectEqualStrings = std.testing.expectEqualStrings;
 
 pub const ProofOfWork = @import("ProofOfWork.zig");
-pub const proof_of_work = ProofOfWork.proof_of_work;
+pub const proofOfWork = ProofOfWork.proofOfWork;
 
 test {
     _ = @import("ProofOfWork.zig");
